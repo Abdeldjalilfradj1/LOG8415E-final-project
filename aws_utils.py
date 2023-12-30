@@ -115,3 +115,18 @@ def create_key_pair(key_name, private_key_filename):
         f.write(response['KeyMaterial'])
     print(f'{private_key_filename} written.')
 
+def retrieve_instance_ip_dns(instance_id):
+    """Retrieves an instance's public IP
+
+    Args:
+        instance_id (str): instance id
+
+    Returns:
+        str: Instance's public IP
+    """
+    print(f'Retrieving instance {instance_id} public IP...')
+    instance_config = EC2_CLIENT.describe_instances(InstanceIds=[instance_id])
+    instance_ip = instance_config["Reservations"][0]['Instances'][0]['PublicIpAddress']
+    instance_dns_name = instance_config["Reservations"][0]['Instances'][0]['PrivateDnsName']
+    print(f'Public IP : {instance_ip}, Private DNS : {instance_dns_name}')
+    return instance_ip, instance_dns_name
