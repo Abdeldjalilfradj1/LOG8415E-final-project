@@ -1,11 +1,14 @@
 #!/usr/bin/python
+import os
+
 from flask import Flask, request
 import requests
 
 app = Flask(__name__)
 
-# Adresse de l'instance TrustedHost
-TRUSTED_HOST_PRIVATE_URL = "http://172.31.61.244:80"
+# Get the trusted host's private IP from an environment variable
+TRUSTED_HOST_PRIVATE_IP = os.getenv('INSTANCE_PRIVATE_IP_TRUSTEDHOST_IP')  # Replace 'default_private_ip' with a default or error handling
+TRUSTED_HOST_PRIVATE_URL = f"http://{TRUSTED_HOST_PRIVATE_IP}:80"
 
 @app.route('/<path:path>', methods=['GET', 'POST', 'PUT', 'DELETE'])
 def forward_request(path):

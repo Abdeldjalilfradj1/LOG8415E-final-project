@@ -237,15 +237,14 @@ def generate_proxy_py(instance_infos):
     Args:
         instance_infos (list of dicts): Informations de configuration des instances.
     """
-    with open('template_proxy.py', 'r') as f:
+    with open('proxy_app_temp.py', 'r') as f:
         lines = f.read()
-    formatted_lines = lines.replace('_MASTER_HOSTNAME_PLACEHOLDER_', instance_infos[0]['ip']) \
-                            .replace("_SLAVE_1_HOSTNAME_PLACEHOLDER_", instance_infos[1]['ip']) \
-                            .replace("_SLAVE_2_HOSTNAME_PLACEHOLDER_", instance_infos[2]['ip']) \
-                            .replace("_SLAVE_3_HOSTNAME_PLACEHOLDER_", instance_infos[3]['ip'])
-    with open('app.py', 'w+') as f_api:
+    formatted_lines = lines.replace('_MASTER_HOSTNAME_', instance_infos[0]['ip']) \
+                            .replace("_SLAVE_1_HOSTNAME_", instance_infos[1]['ip']) \
+                            .replace("_SLAVE_2_HOSTNAME_", instance_infos[2]['ip']) \
+                            .replace("_SLAVE_3_HOSTNAME_", instance_infos[3]['ip'])
+    with open('proxy_app.py', 'w+') as f_api:
         f_api.write(formatted_lines)
-    print("Wrote api to app.py")
 
 
 if __name__ == "__main__":

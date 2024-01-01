@@ -1,13 +1,15 @@
 #!/usr/bin/python
+import os
+
 from flask import Flask, request
 import requests
 import re
 
 app = Flask(__name__)
 
-# Adresse de l'instance Proxy
-PROXY_INSTANCE_PRIVATE_URL = "http://172.31.53.93:80"
-
+# Get the proxy instance's private IP from an environment variable
+PROXY_INSTANCE_PRIVATE_IP = os.getenv('INSTANCE_PRIVATE_IP_PROXY_IP', 'default_proxy_ip')  # Replace 'default_proxy_ip' with a default value or error handling
+PROXY_INSTANCE_PRIVATE_URL = f"http://{PROXY_INSTANCE_PRIVATE_IP}:80"
 # Fonction pour valider la requête
 def is_valid_request(path, method, data):
     # Exemple de validation simple
