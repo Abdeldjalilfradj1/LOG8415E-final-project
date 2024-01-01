@@ -314,23 +314,23 @@ if __name__ == "__main__":
                 f.write(f'INSTANCE_PRIVATE_IP_MASTER_IP={instance_info["private_ip"]}\n')
                 f.write(f'INSTANCE_IP_MASTER_DNS={instance_info["dns"]}\n')
             elif instance_role == "Proxy":
-                f.write(f'INSTANCE_IP_PROXY_IP={instance_info["ip"]}\n')
+                f.write(f'INSTANCE_IP_PROXY_IP={instance_info["public_ip"]}\n')
                 f.write(f'INSTANCE_PRIVATE_IP_PROXY_IP={instance_info["private_ip"]}\n')
                 f.write(f'INSTANCE_IP_PROXY_DNS={instance_info["dns"]}\n')
             elif instance_role == "Standalone":
-                f.write(f'INSTANCE_IP_STANDALONE_IP={instance_info["ip"]}\n')
+                f.write(f'INSTANCE_IP_STANDALONE_IP={instance_info["public_ip"]}\n')
                 f.write(f'INSTANCE_PRIVATE_IP_STANDALONE_IP={instance_info["private_ip"]}\n')
                 f.write(f'INSTANCE_IP_STANDALONE_DNS={instance_info["dns"]}\n')
             elif instance_role == "Trustedhost":
-                f.write(f'INSTANCE_IP_TRUSTEDHOST_IP={instance_info["ip"]}\n')
+                f.write(f'INSTANCE_IP_TRUSTEDHOST_IP={instance_info["public_ip"]}\n')
                 f.write(f'INSTANCE_PRIVATE_IP_TRUSTEDHOST_IP={instance_info["private_ip"]}\n')
                 f.write(f'INSTANCE_IP_TRUSTEDHOST_DNS={instance_info["dns"]}\n')
             elif instance_role == "Gatekeeper":
-                f.write(f'INSTANCE_IP_GATEKEEPER_IP={instance_info["ip"]}\n')
+                f.write(f'INSTANCE_IP_GATEKEEPER_IP={instance_info["public_ip"]}\n')
                 f.write(f'INSTANCE_PRIVATE_IP_GATEKEEPER_IP={instance_info["private_ip"]}\n')
                 f.write(f'INSTANCE_IP_GATEKEEPER_DNS={instance_info["dns"]}\n')
             elif 'child_idx' in instance_info:
-                f.write(f'INSTANCE_IP_CHILD_IP_{instance_info["child_idx"]}={instance_info["ip"]}\n')
+                f.write(f'INSTANCE_IP_CHILD_IP_{instance_info["child_idx"]}={instance_info["public_ip"]}\n')
                 f.write(f'INSTANCE_PRIVATE_IP_CHILD_IP_{instance_info["child_idx"]}={instance_info["private_ip"]}\n')
                 f.write(f'INSTANCE_IP_CHILD_DNS_{instance_info["child_idx"]}={instance_info["dns"]}\n')
         f.write(f'PRIVATE_KEY_FILE={private_key_filename}\n')
