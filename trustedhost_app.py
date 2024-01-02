@@ -16,7 +16,7 @@ PROXY_INSTANCE_PRIVATE_IP = os.getenv('INSTANCE_PRIVATE_IP_PROXY_IP', 'default_p
 PROXY_INSTANCE_PRIVATE_URL = f"http://{PROXY_INSTANCE_PRIVATE_IP}:80"
 
 def is_valid_request(sql, method):
-    if not re.match(r'^\s*(SELECT|INSERT INTO|UPDATE|DELETE FROM)\s+[\w\*\,\s]+(\s+FROM\s+\w+)?(\s+WHERE\s+[\w\s\=\<\>\'\"\;\,]+)?(\s+LIMIT\s+\d+(\s*,\s*\d+)?)?(;|\s+)?$', sql):
+    if not re.match(r'^\s*(SELECT\s+.+?\s+FROM\s+.+?|INSERT\s+INTO\s+.+?\s+VALUES\s*\(.+?\)|UPDATE\s+.+?\s+SET\s+.+?(\s+WHERE\s+.+?)?|DELETE\s+FROM\s+.+?(\s+WHERE\s+.+?)?)\s*;?\s*$', sql):
         return False
     if method not in ['GET', 'POST', 'PUT', 'DELETE']:
         return False

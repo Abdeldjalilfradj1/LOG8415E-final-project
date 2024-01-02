@@ -5,6 +5,7 @@ import random
 from sshtunnel import SSHTunnelForwarder
 from pythonping import ping
 
+
 # master and slaves configurations
 MASTER_CONFIG = {
     "ip": "18.209.8.218",
@@ -17,6 +18,7 @@ SLAVE_CONFIGS = [
     {"ip": "54.91.169.38", "port": 3308, "name": "SLAVE_2"},
     {"ip": "3.91.227.191", "port": 3309, "name": "SLAVE_3"},
 ]
+
 
 
 # simple html template response
@@ -65,6 +67,7 @@ def normal_endpoint(sql):
     with connection:
         with connection.cursor() as cursor:
             cursor.execute(sql)
+            connection.commit()
 
             result = cursor.fetchall()
             print(result)
