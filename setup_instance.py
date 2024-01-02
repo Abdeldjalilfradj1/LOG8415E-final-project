@@ -124,6 +124,33 @@ def update_security_group(sg_id, ip_protocol, from_port, to_port, cidr_ip):
     except ClientError as e:
         print(f'Error updating security group {sg_id}: {e}')
 
+def update_security_group_egress(sg_id, ip_protocol, from_port, to_port, cidr_ip):
+    """
+    Met à jour un groupe de sécurité avec une nouvelle règle sortante.
+
+    Args:
+        sg_id (str): ID du groupe de sécurité.
+        ip_protocol (str): Protocole (par exemple, 'tcp').
+        from_port (int): Port de début.
+        to_port (int): Port de fin.
+        cidr_ip (str): CIDR IP pour la destination (par exemple, '10.0.0.1/32').
+    """
+    try:
+        EC2_CLIENT.authorize_security_group_egress(
+            GroupId=sg_id,
+            IpPermissions=[
+                {
+                    'IpProtocol': ip_protocol,
+                    'FromPort': from_port,
+                    'ToPort': to_port,
+                    'IpRanges': [{'CidrIp': cidr_ip}]
+                }
+            ]
+        )
+        print(f'Successfully updated security group {sg_id} with new outbound rule: {cidr_ip}')
+    except ClientError as e:
+        print(f'Error updating security group {sg_id}: {e}')
+
 
 def create_private_key_filename(key_name):
     """
@@ -277,6 +304,8 @@ if __name__ == "__main__":
 
     gatekeeper_private_ip = None
     trustedhost_private_ip = None
+    proxy_private_ip = None
+    proxy_private_ip = None
 
     for role, instance_type in instance_configurations.items():
         if role == "Proxy":
@@ -296,6 +325,8 @@ if __name__ == "__main__":
             gatekeeper_private_ip = instance_private_ip
         elif role == 'Trustedhost':
             trustedhost_private_ip = instance_private_ip
+        elif role == 'proxy':
+            proxy_private_ip = instance_private_ip
         if 'Child' in role:
             # This is a child instance
             instance_infos.append(
@@ -336,8 +367,9 @@ if __name__ == "__main__":
         f.write(f'PRIVATE_KEY_FILE={private_key_filename}\n')
     print('Wrote instance\'s IP and private key filename to env_variables.txt')
 
-    if gatekeeper_private_ip:
+    if gatekeeper_private_ip and proxy_private_ip:
         update_security_group(trustedhost_sg_id, 'tcp', 80, 80, f'{gatekeeper_private_ip}/32')
+        update_security_group_egress(trustedhost_sg_id, 'tcp', 80, 80, f'{proxy_private_ip}/32')
 
     if trustedhost_private_ip:
         update_security_group(proxy_sg_id, 'tcp', 80, 80, f'{trustedhost_private_ip}/32')

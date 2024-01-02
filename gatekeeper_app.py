@@ -10,14 +10,14 @@ app = Flask(__name__)
 TRUSTED_HOST_PRIVATE_IP = os.getenv('INSTANCE_PRIVATE_IP_TRUSTEDHOST_IP')  # Replace 'default_private_ip' with a default or error handling
 TRUSTED_HOST_PRIVATE_URL = f"http://{TRUSTED_HOST_PRIVATE_IP}:80"
 
-@app.route('/<path:path>', methods=['GET', 'POST', 'PUT', 'DELETE'])
-def forward_request(path):
+@app.route('/<path>/<sql>', methods=['GET', 'POST', 'PUT', 'DELETE'])
+def forward_request(path,sql):
     try:
         method = request.method
         data = request.get_data()
         headers = {key: value for (key, value) in request.headers if key != 'Host'}
 
-        url = f"{TRUSTED_HOST_PRIVATE_URL}/{path}"
+        url = f"{TRUSTED_HOST_PRIVATE_URL}/{path}/{sql}"
 
         response = requests.request(method, url, headers=headers, data=data, allow_redirects=False)
 

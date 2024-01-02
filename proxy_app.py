@@ -5,74 +5,138 @@ import random
 from sshtunnel import SSHTunnelForwarder
 from pythonping import ping
 
-# Combined configuration for master and slaves
-DB_CONFIGS = {
-    "MASTER": {"ip": "34.228.157.177", "port": 3306},
-    "SLAVE_1": {"ip": "34.230.32.39", "port": 3307},
-    "SLAVE_2": {"ip": "18.232.176.181", "port": 3308},
-    "SLAVE_3": {"ip": "34.228.144.73", "port": 3309},
+# master and slaves configurations
+MASTER_CONFIG = {
+    "ip": "18.209.8.218",
+    "port": 3306,
+    "name": "MASTER"
 }
 
-SQL_QUERY = "SELECT * FROM film LIMIT 5;"
-RESPONSE_TEMPLATE = "<h1>{route} route</h1><h2>Received from {ip} ({name})</h2><p>{content}</p>"
+SLAVE_CONFIGS = [
+    {"ip": "54.197.27.205", "port": 3307, "name": "SLAVE_1"},
+    {"ip": "54.91.169.38", "port": 3308, "name": "SLAVE_2"},
+    {"ip": "3.91.227.191", "port": 3309, "name": "SLAVE_3"},
+]
 
-# Setup SSH tunnels for slaves
+
+# simple html template response
+RESPONSE_TEMPLATE = """
+<h1>{_ROUTE_TYPE_} route</h1><h2>Received from {_IP_} ({_NAME_})</h2>
+<p>{_CONTENT_}</p>"""
+
+# setup sshtunnels
 servers = []
-def setup_ssh_tunnels():
-    for name, config in DB_CONFIGS.items():
-        if 'SLAVE' in name:
-            server = SSHTunnelForwarder(
-                (config["ip"], 22),
-                ssh_pkey="/home/ubuntu/private_key_PROJET_KEY.pem",
-                ssh_username="ubuntu",
-                local_bind_address=('127.0.0.1', config["port"]),
-                allow_agent=False,
-                remote_bind_address=(DB_CONFIGS["MASTER"]["ip"], DB_CONFIGS["MASTER"]["port"]))
-            server.start()
-            servers.append(server)
-            print(f"SSH tunnel setup for {name} at 127.0.0.1:{config['port']}")
+for idx, slave_config in enumerate(SLAVE_CONFIGS):
+    print(f"Starting forwarding for {slave_config['ip']} -> 127.0.0.1:{slave_config['port']}")
+    server = SSHTunnelForwarder(
+        (slave_config["ip"], 22),
+        ssh_pkey="/home/ubuntu/private_key_PROJET_KEY.pem",
+        ssh_username="ubuntu",
+        local_bind_address=('127.0.0.1', slave_config["port"]),
+        allow_agent=False,
+        remote_bind_address=(MASTER_CONFIG["ip"], MASTER_CONFIG["port"]))
+    server.start()
+    servers.append(server)
 
-setup_ssh_tunnels()
 
+# simple function that pings a host and returns the average
 def ping_instance(host):
-    return ping(target=host, count=5, timeout=2).rtt_avg_ms
+    ping_result = ping(target=host, count=5, timeout=2)
+    avg_ping = ping_result.rtt_avg_ms
+    print(f"{host} ping : {avg_ping}ms")
+    return avg_ping
 
-def db_connection(config):
-    return pymysql.connect(host="127.0.0.1" if 'SLAVE' in config else config["ip"],
-                           port=config["port"],
-                           user='user0',
-                           password='mysql',
-                           database='sakila',
-                           charset='utf8mb4',
-                           cursorclass=pymysql.cursors.DictCursor)
 
+# flask Application : defines our endpoints and their logic
 app = Flask(__name__)
 
-@app.route('/normal')
-def normal_endpoint():
-    with db_connection(DB_CONFIGS["MASTER"]) as conn:
-        with conn.cursor() as cursor:
-            cursor.execute(SQL_QUERY)
-            result = cursor.fetchone()
-    return RESPONSE_TEMPLATE.format(route="Normal", ip=DB_CONFIGS["MASTER"]['ip'], name="MASTER", content=result)
 
-@app.route('/custom')
-def custom_endpoint():
-    selected_config = min(DB_CONFIGS.items(), key=lambda x: ping_instance(x[1]['ip']))[1]
-    with db_connection(selected_config) as conn:
-        with conn.cursor() as cursor:
-            cursor.execute(SQL_QUERY)
-            result = cursor.fetchone()
-    return RESPONSE_TEMPLATE.format(route="Custom", ip=selected_config['ip'], name=selected_config['name'], content=result)
+@app.route('/normal/<sql>')
+def normal_endpoint(sql):
+    # forward the request directly to the master
+    connection = pymysql.connect(host=MASTER_CONFIG["ip"],
+                                 port=MASTER_CONFIG["port"],
+                                 user='user0',
+                                 password='mysql',
+                                 database='sakila',
+                                 charset='utf8mb4',
+                                 cursorclass=pymysql.cursors.DictCursor)
 
-@app.route('/random')
-def random_endpoint():
-    config = random.choice(list(DB_CONFIGS.values()))
-    with db_connection(config) as conn:
-        with conn.cursor() as cursor:
-            cursor.execute(SQL_QUERY)
-            result = cursor.fetchone()
-    return RESPONSE_TEMPLATE.format(route="Random", ip=config['ip'], name=config['name'], content=result)
+    with connection:
+        with connection.cursor() as cursor:
+            cursor.execute(sql)
+
+            result = cursor.fetchall()
+            print(result)
+
+    return RESPONSE_TEMPLATE.format(_ROUTE_TYPE_="Normal",
+                                    _IP_=MASTER_CONFIG['ip'],
+                                    _NAME_=MASTER_CONFIG['name'],
+                                    _CONTENT_=result)
+
+
+@app.route('/custom/<sql>')
+def custom_endpoint(sql):
+    # default to master
+    min_ping_config = MASTER_CONFIG
+    min_ping = ping_instance(MASTER_CONFIG["ip"])
+
+    # ping the endpoints, and forward to the right one
+    for slave_config in SLAVE_CONFIGS:
+        instance_ping = ping_instance(slave_config["ip"])
+        if instance_ping < min_ping:
+            min_ping = instance_ping
+            min_ping_config = {"ip": "127.0.0.1", "port": slave_config["port"], "name": slave_config["name"]}
+
+    print(f"Redirecting to instance: {min_ping_config}")
+
+    connection = pymysql.connect(host=min_ping_config["ip"],
+                                 port=min_ping_config["port"],
+                                 user='user0',
+                                 password='mysql',
+                                 database='sakila',
+                                 charset='utf8mb4',
+                                 cursorclass=pymysql.cursors.DictCursor)
+
+    with connection:
+        with connection.cursor() as cursor:
+            cursor.execute(sql)
+
+            result = cursor.fetchall()
+            print(result)
+
+    return RESPONSE_TEMPLATE.format(_ROUTE_TYPE_="Custom",
+                                    _IP_=min_ping_config['ip'],
+                                    _NAME_=min_ping_config['name'],
+                                    _CONTENT_=result)
+
+
+@app.route('/random/<sql>')
+def random_endpoint(sql):
+    # choose a random slave
+    config = random.choice(SLAVE_CONFIGS)
+
+    # connect to the database through ssh tunnelling
+    connection = pymysql.connect(host="127.0.0.1",
+                                 port=config["port"],
+                                 user='user0',
+                                 password='mysql',
+                                 database='sakila',
+                                 charset='utf8mb4',
+                                 cursorclass=pymysql.cursors.DictCursor)
+
+    with connection:
+        with connection.cursor() as cursor:
+            cursor.execute(sql)
+            result = cursor.fetchall()
+            print(result)
+
+    return RESPONSE_TEMPLATE.format(_ROUTE_TYPE_="Random",
+                                    _IP_=config['ip'],
+                                    _NAME_=config['name'],
+                                    _CONTENT_=result)
+
 
 if __name__ == '__main__':
-    app.run()
+    app.run(host='0.0.0.0', port=80)
+
